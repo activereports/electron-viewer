@@ -1,0 +1,12 @@
+{
+  "name": "electron-viewer",
+  "version": "1.0.0",
+  "description": "ActiveReports HTML5 viewer runnable in electron.",
+  "main": "main.js",
+  "author": "Sergey Todyshev <stodyshev@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "ars-client": "^0.1.4",
+    "jquery": "^2.2.0"
+  }
+}

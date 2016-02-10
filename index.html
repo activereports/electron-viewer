@@ -1,0 +1,134 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<title>ActiveReports Electron Viewer</title>
+	<meta charset="utf-8" />
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
+	<link rel="stylesheet" href="GrapeCity.ActiveReports.Viewer.Html.css" />
+	<style>
+		.report-list {
+			max-height: 200px;
+			overflow-y: scroll;
+		}
+	</style>
+	<script>
+		window.$ = window.jQuery = require('jquery');
+	</script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+	<script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-3.3.0.js"></script>
+	<script type="text/javascript">
+		var Viewer = require('./GrapeCity.ActiveReports.Viewer.Html.js');
+
+		$(function () {
+			// docks viewer into browser window
+			function dock() {
+				var w = window.innerWidth;
+				var h = window.innerHeight;
+				w -= $('#viewer').offset().left;
+				h -= $('#viewer').offset().top;
+				$('#viewer')
+					.css('width', w + 'px')
+					.css('height', h + 'px');
+			}
+
+			$(window).resize(dock);
+
+			var arsEndpoint = 'http://localhost:42011';
+			var login = require('ars-client').login;
+			login('admin', 1, arsEndpoint).then(init);
+
+			function init(token) {
+				// create viewer
+				var options = {
+					element: '#viewer',
+					uiType: 'desktop',
+					reportService: {
+						// url: 'http://localhost:8888/ReportService.svc'
+						url: arsEndpoint + '/api/',
+						securityToken: token,
+					}
+				};
+
+				var viewer = Viewer(options);
+
+				// inject custom toolbar
+				var toolbar = $('#app-toolbar').html();
+				$('#viewer .toolbar').prepend($(toolbar));
+
+				var dlg = $('#open-dialog');
+				var ArsClient = require('ars-client').ArsClient;
+				var client = new ArsClient({
+					endpoint: arsEndpoint,
+					token: token,
+				});
+
+				client.reports().load().then(function(reports) {
+					var selected = ko.observable('');
+					var viewModel = {
+						selected: ko.observable(''),
+						reports: reports.map(function(report) {
+							return Object.assign(report, {
+								active: ko.computed(function() {
+									return selected() === report._id ? 'active' : '';
+								}),
+								click: function() {
+									selected(report._id);
+								},
+							});
+						}),
+						open: function() {
+							dlg.modal('hide');
+							var id = selected();
+							if (!id) return;
+							viewer.option('report', { id: id });
+						},
+					};
+
+					ko.applyBindings(viewModel, dlg[0]);
+				});
+
+				// handler to work with micro AR server
+				// $('.open-report').click(function () {
+				// 	var remote = require('remote');
+				// 	var dialog = remote.require('dialog');
+				// 	dialog.showOpenDialog(function (files) {
+				// 		if (files.length !== 1) return;
+				// 		viewer.option('report', { id: files[0] });
+				// 	});
+				// });
+
+				dock();
+			}
+		});
+	</script>
+</head>
+<body>
+	<template id="app-toolbar">
+		<div class="btn-group btn-group-sm">
+			<button class="btn btn-default open-report" title="Open report" data-toggle="modal" data-target="#open-dialog">
+				<span class="glyphicon glyphicon-folder-open" />
+			</button>
+		</div>
+	</template>
+	<div id="viewer" style="width: 800px; height: 600px;"></div>
+	<div id="open-dialog" class="modal fade" tabindex="-1" role="dialog">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title">Open report</h4>
+				</div>
+				<div class="modal-body">
+					<ul class="list-group report-list" data-bind="foreach: $data.reports">
+						<a class="list-group-item" data-bind="css: active, text: Name, click: click"></a>
+					</ul>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dissmis="modal">Close</button>
+					<button type="button" class="btn btn-primary" data-bind="click: $data.open">Open</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
