@@ -1,3 +1,5 @@
+// Copyright (c) 2016 GrapeCity, Inc.
+// DO NOT USE IN PRODUCTION!
 !function(window) {
     function ActionItemsResolver() {
         function isArDrillthroughLink(link) {
